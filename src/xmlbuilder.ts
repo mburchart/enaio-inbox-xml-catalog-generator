@@ -64,6 +64,7 @@ export default class XMLBuilder {
       "text/xml",
     );
     const rootXmlGroups = domXmlGroups.documentElement;
+
     const applyTemplateRootAttributes = (
       templatePath: string,
       root: Element,
@@ -79,9 +80,7 @@ export default class XMLBuilder {
           root.setAttribute(attr.name, attr.value);
         }
       }
-      logger.info(
-        `XML-Template fuer ${label} aus ${templatePath} geladen.`,
-      );
+      logger.info(`XML-Template fuer ${label} aus ${templatePath} geladen.`);
     };
     applyTemplateRootAttributes(pathXMLUsers, rootXmlUsers, "users");
     applyTemplateRootAttributes(pathXMLGroups, rootXmlGroups, "groups");
@@ -137,6 +136,7 @@ export default class XMLBuilder {
         rootXmlGroups.setAttribute(key, value);
       }
     }
+
     // Build groups XML
     const groupKeywordFirst = expandCommaSeparatedEntries(
       Config.readList("GROUP_SORT_KEYWORDS_FIRST"),
@@ -218,12 +218,14 @@ export default class XMLBuilder {
             sensitivity: "base",
           });
     };
+
     const returnValueGroupSuffix = Config.readString("RETURNVALUE_GROUP_SUFFIX", "(g)");
     const returnValueUserSuffix = Config.readString("RETURNVALUE_USER_SUFFIX", "");
     const sortedGroups = groupSortEnabled
       ? Array.from(usersAndGroups.groups).sort(groupComparator)
       : Array.from(usersAndGroups.groups);
     const groupsSortableValue = "-1";
+
     for (const group of sortedGroups) {
       const groupName = group.name.trim();
       if (!groupName) continue;
@@ -237,9 +239,52 @@ export default class XMLBuilder {
       });
       rootXmlGroups.appendChild(groupEbene);
     }
+
     // Build users XML
     const userKeywordFirst = Config.readList("USER_SORT_KEYWORDS_FIRST");
-    const userSortOrderRaw = Config.readString("USER_SORT_ORDER","").toLowerCase();
+    const userSortOrderRaw = Config.readString("USER_SORT_ORDER", "").toLowerCase();
+    const userSortByRaw = Config.readString("USER_SORT_BY", "").toLowerCase();
+    const userSortEnabled =
+      userKeywordFirst.length > 0 ||
+      userSortOrderRaw !== "" ||
+      userSortByRaw !== "";
+    const userSortOrder = userSortOrderRaw === "" ? "asc" : userSortOrderRaw;
+    const userSortBy = userSortByRaw === "" ? "last_name" : userSortByRaw;
+    const userComparator = (
+      a: { display_name: string },
+      b: { display_name: string },
+    ) => {
+      const leftName = a.display_name;
+      const rightName = b.display_name;
+      const leftHasKeyword = userKeywordFirst.some((kw) =>
+        leftName.toLowerCase().includes(kw.toLowerCase()),
+      );
+      const rightHasKeyword = userKeywordFirst.some((kw) =>
+        rightName.toLowerCase().includes(kw.toLowerCase()),
+      );
+      if (leftHasKeyword !== rightHasKeyword) {
+        return leftHasKeyword ? -1 : 1;
+      }
+      const leftKey =
+        userSortBy === "last_name"
+          ? (leftName.trim().split(/\s+/).slice(-1)[0] ?? "")
+          : leftName;
+      const rightKey =
+        userSortBy === "last_name"
+          ? (rightName.trim().split(/\s+/).slice(-1)[0] ?? "")
+          : rightName;
+      const keyCompare = leftKey.localeCompare(rightKey, "de-DE", {
+        sensitivity: "base",
+      });
+      if (keyCompare !== 0) {
+        return userSortOrder === "desc" ? -keyCompare : keyCompare;
+      }
+      const nameCompare = leftName.localeCompare(rightName, "de-DE", {
+        sensitivity: "base",
+      });
+      return userSortOrder === "desc" ? -nameCompare : nameCompare;
+    };
+
     for (const group of sortedGroups) {
       const groupName = group.name.trim();
       if (!groupName) continue;
@@ -251,47 +296,6 @@ export default class XMLBuilder {
         autoexpand: "1",
         sortableValue: xmlSortableValue,
       });
-      const userSortByRaw = Config.readString("USER_SORT_BY", "").toLowerCase();
-      const userSortEnabled =
-        userKeywordFirst.length > 0 ||
-        userSortOrderRaw !== "" ||
-        userSortByRaw !== "";
-      const userSortOrder = userSortOrderRaw === "" ? "asc" : userSortOrderRaw;
-      const userSortBy = userSortByRaw === "" ? "last_name" : userSortByRaw;
-      const userComparator = (
-        a: { display_name: string },
-        b: { display_name: string },
-      ) => {
-        const leftName = a.display_name;
-        const rightName = b.display_name;
-        const leftHasKeyword = userKeywordFirst.some((kw) =>
-          leftName.toLowerCase().includes(kw.toLowerCase()),
-        );
-        const rightHasKeyword = userKeywordFirst.some((kw) =>
-          rightName.toLowerCase().includes(kw.toLowerCase()),
-        );
-        if (leftHasKeyword !== rightHasKeyword) {
-          return leftHasKeyword ? -1 : 1;
-        }
-        const leftKey =
-          userSortBy === "last_name"
-            ? (leftName.trim().split(/\s+/).slice(-1)[0] ?? "")
-            : leftName;
-        const rightKey =
-          userSortBy === "last_name"
-            ? (rightName.trim().split(/\s+/).slice(-1)[0] ?? "")
-            : rightName;
-        const keyCompare = leftKey.localeCompare(rightKey, "de-DE", {
-          sensitivity: "base",
-        });
-        if (keyCompare !== 0) {
-          return userSortOrder === "desc" ? -keyCompare : keyCompare;
-        }
-        const nameCompare = leftName.localeCompare(rightName, "de-DE", {
-          sensitivity: "base",
-        });
-        return userSortOrder === "desc" ? -nameCompare : nameCompare;
-      };
       const sortedUsers = userSortEnabled
         ? Array.from(group.users).sort(userComparator)
         : Array.from(group.users);
@@ -308,7 +312,8 @@ export default class XMLBuilder {
       }
       rootXmlUsers.appendChild(groupEbene);
     }
-    // speichern der beiden xml
+
+    // Write both XML files
     const xmlSerializer = new XMLSerializer();
     const finalXmlUsers = XMLBuilder.formatXml(
       xmlSerializer.serializeToString(domXmlUsers),
@@ -335,7 +340,6 @@ export default class XMLBuilder {
       returnValue: string;
       name: string;
       selectable: "0" | "1";
-      templateAttributes?: NamedNodeMap;
       includeRestriction?: boolean;
       autoexpand?: "0" | "1";
       sortableValue?: string;
@@ -352,14 +356,6 @@ export default class XMLBuilder {
     ebene.setAttribute("iscolumnvalue", "0");
     ebene.setAttribute("sortable", options.sortableValue ?? "-1");
     ebene.setAttribute("name", options.name);
-    if (options.templateAttributes) {
-      for (let i = 0; i < options.templateAttributes.length; i++) {
-        const attr = options.templateAttributes.item(i);
-        if (attr && attr.name !== "name" && attr.name !== "returnvalue") {
-          ebene.setAttribute(attr.name, attr.value);
-        }
-      }
-    }
     if (options.includeRestriction) {
       const cdata = XMLBuilder.createCData(document, options.returnValue);
       ebene.appendChild(cdata);

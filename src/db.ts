@@ -1,5 +1,8 @@
 import sql from "mssql";
 import Config from "./config";
+import Logger from "./logger";
+
+const logger = Logger.get();
 
 type DbConfig = {
   user: string;
@@ -35,14 +38,21 @@ export class Database {
     if (Database.pool) return Database.pool;
     if (!Database.poolPromise) {
       const config = Database.loadConfig();
+      logger.info("Stelle Datenbankverbindung her.");
       Database.poolPromise = new sql.ConnectionPool(config)
         .connect()
         .then((pool: sql.ConnectionPool) => {
           Database.pool = pool;
+          logger.info("Datenbankverbindung wurde hergestellt.");
           return pool;
         })
         .catch((err: unknown) => {
           Database.poolPromise = null;
+          logger.error(
+            `Datenbankverbindung fehlgeschlagen: ${
+              err instanceof Error ? err.stack || err.message : String(err)
+            }`,
+          );
           throw err;
         });
     }
@@ -79,8 +89,10 @@ export class Database {
 
   static async close(): Promise<void> {
     if (!Database.pool) return;
+    logger.info("Schließe Datenbankverbindung.");
     await Database.pool.close();
     Database.pool = null;
     Database.poolPromise = null;
+    logger.info("Datenbankverbindung ist geschlossen.");
   }
 }

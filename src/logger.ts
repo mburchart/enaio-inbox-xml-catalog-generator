@@ -7,7 +7,6 @@ export default class Logger {
 
   public static get(): winston.Logger {
     if (Logger.instance) return Logger.instance;
-
     const level = Config.readString("LOG_LEVEL", "info");
     const format = winston.format.combine(
       winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),

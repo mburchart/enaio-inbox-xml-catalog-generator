@@ -15,30 +15,30 @@ process.on("unhandledRejection", (reason) => {
   );
 });
 
-class Index {
-  public static async run() {
-    logger.info("Lade Benutzer und Gruppen aus der Datenbank...");
-    try {
-      let usersAndGroups = await Query.getUsersAndGroups();
-      await XMLBuilder.buildPostalXML(usersAndGroups);
-      await Database.close();
-      logger.info("Erfolgreich abgeschlossen.");
-    } catch (error){
-      console.error("Fehler beim Ausführen des Skripts:", error);
-      const sendTo = Config.readString("EMAIL_ERROR_NOTIFICATION_TO", "");
-      const errorText = error instanceof Error ? `${error.message}\n\nStack:\n${error.stack}` : String(error);
-      if (sendTo) {
-        console.error("Fehler aufgetreten:", errorText);
-        await Email.get().sendMail(
-          sendTo,
-          "Fehler beim enaio Posteingang XML Kataloggenerator",
-          errorText
-        );
-      }
-    }   
+async function run(): Promise<void> {
+  logger.info("Lade Benutzer und Gruppen aus der Datenbank...");
+  try {
+    const usersAndGroups = await Query.getUsersAndGroups();
+    await XMLBuilder.buildPostalXML(usersAndGroups);
+    await Database.close();
+    logger.info("Erfolgreich abgeschlossen.");
+  } catch (error) {
+    const errorText =
+      error instanceof Error
+        ? `${error.message}\n\nStack:\n${error.stack}`
+        : String(error);
+    logger.error(`Fehler beim Ausführen des Skripts: ${errorText}`);
+    const sendTo = Config.readString("EMAIL_ERROR_NOTIFICATION_TO", "");
+    if (sendTo) {
+      await Email.get().sendMail(
+        sendTo,
+        "Fehler beim enaio Posteingang XML Kataloggenerator",
+        errorText,
+      );
+    }
   }
 }
 
 (async () => {
-  Index.run();
+  await run();
 })();
