@@ -82,11 +82,12 @@ export default class XMLBuilder {
       }
       logger.info(`XML-Template fuer ${label} aus ${templatePath} geladen.`);
     };
+    const xmlSortableEnabled = Config.readBoolean("XML_SORTABLE", true);
+    const xmlSortableValue = xmlSortableEnabled ? "-1" : "0";    
     applyTemplateRootAttributes(pathXMLUsers, rootXmlUsers, "users");
     applyTemplateRootAttributes(pathXMLGroups, rootXmlGroups, "groups");
-
-    const xmlSortableEnabled = Config.readBoolean("XML_SORTABLE", true);
-    const xmlSortableValue = xmlSortableEnabled ? "-1" : "0";
+    rootXmlUsers.setAttribute("checkfieldvalue", "1");
+    rootXmlUsers.setAttribute("checkdynamicinputvalue", "0");
     rootXmlUsers.setAttribute("sortable", xmlSortableValue);
 
     const defaultGroupRootAttributes: Record<string, string> = {
@@ -104,10 +105,10 @@ export default class XMLBuilder {
       stayopenonerror: "0",
       allow_oneclick: "1",
       initasdialog: "0",
-      autosort: "1",
+      autosort: "0",
       checkgroup: "0",
       checkfieldvalue: "0",
-      checkfieldinputvalue: "0",
+      checkfieldinputvalue: "1",
       checkfieldguid: "",
       checkfieldname: "",
       checkfieldinternalname: "",
