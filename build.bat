@@ -22,13 +22,13 @@ echo [3/4] SEA Blob generieren...
 if errorlevel 1 goto :error
 
 echo [4/4] node.exe kopieren und Blob injizieren...
-copy /y "%NODE%" enaio-import.exe
+copy /y "%NODE%" enaio-inbox-xml-catalog-generator.exe
 if errorlevel 1 goto :error
-call "%NPX%" --yes postject enaio-import.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+call "%NPX%" --yes postject enaio-inbox-xml-catalog-generator.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 if errorlevel 1 goto :error
 
 echo.
-echo Fertig! enaio-import.exe wurde erstellt.
+echo Fertig! enaio-inbox-xml-catalog-generator.exe wurde erstellt.
 goto :end
 
 :error
