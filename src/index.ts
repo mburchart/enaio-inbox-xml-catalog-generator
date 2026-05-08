@@ -39,6 +39,24 @@ async function run(): Promise<void> {
   }
 }
 
+function waitForKeypress(): Promise<void> {
+  return new Promise((resolve) => {
+    process.stdout.write("\nDrücke eine beliebige Taste zum Beenden...");
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+    process.stdin.once("data", () => {
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
+      process.stdin.pause();
+      resolve();
+    });
+  });
+}
+
 (async () => {
   await run();
+  await waitForKeypress();
 })();
